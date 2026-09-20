@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الإدارة الحصينة</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --accent: #ec4899;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #090d16;
+            --card-bg: #111827;
+            --text: #f9fafb;
+            --text-muted: #9ca3af;
+            --border: #1f2937;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 25px; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        header { background: var(--card-bg); padding: 20px 30px; border-radius: 18px; box-shadow: 0 15px 35px -5px rgba(0,0,0,0.4); display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border: 1px solid var(--border); }
+        h1 { color: #818cf8; font-size: 22px; }
+        .card { background: var(--card-bg); padding: 35px; border-radius: 18px; border: 1px solid var(--border); margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        h2 { font-size: 20px; margin-bottom: 20px; color: #e2e8f0; border-bottom: 2px solid var(--border); padding-bottom: 12px; }
+
+        .alert { padding: 16px 20px; border-radius: 12px; margin-bottom: 25px; font-weight: bold; font-size: 15px; display: none; }
+        .alert.success { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid var(--success); display: block; }
+        .alert.error { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid var(--danger); display: block; }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--text-muted); }
+        input[type="password"] { width: 100%; padding: 14px; background: #090d16; border: 1px solid var(--border); color: white; border-radius: 10px; outline: none; font-size: 15px; }
+
+        .btn { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; transition: 0.3s; font-size: 14px; }
+        .btn:hover { background: var(--primary-hover); }
+        .btn-danger { background: var(--danger); }
+        .btn-success { background: var(--success); }
+        .btn-warning { background: var(--warning); color: #000; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 16px; text-align: center; border-bottom: 1px solid var(--border); font-size: 14px; }
+        th { background: #090d16; color: var(--text-muted); font-weight: 700; }
+        .badge { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; }
+        .badge.pending { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+        .badge.approved { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .badge.rejected { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🛡️ لوحة تحكم الإدارة - مركز العمليات الآمن</h1>
+        <a href="/" class="btn" style="background: #1f2937;">العودة للمنصة الرئيسية 🎮</a>
+    </header>
+
+    <div id="alertBox" class="alert"></div>
+
+    <div class="card" id="adminAuthCard">
+        <h2>تسجيل دخول الإدارة الحصين (محمي بـ bcrypt)</h2>
+        <form onsubmit="adminLogin(event)">
+            <div class="form-group">
+                <label>كلمة السر الإدارية:</label>
+                <input type="password" id="adminPassInput" required placeholder="أدخل كلمة السر الخاصة بالإدارة...">
+            </div>
+            <button type="submit" class="btn">تأكيد ودخول آمن</button>
+        </form>
+    </div>
+
+    <div class="card" id="adminPanelCard" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+            <h2>مركز التحكم والعمليات الشامل</h2>
+            <div>
+                <button class="btn btn-warning" onclick="loadAuditLogs()">سجل الأحداث والخوادم 📊</button>
+                <button class="btn btn-danger" onclick="adminLogout()" style="margin-right: 10px;">تسجيل خروج 🔒</button>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; margin-bottom: 30px;" id="serverStatsBox"></div>
+
+        <form onsubmit="changePassword(event)" style="background: #090d16; padding: 25px; border-radius: 14px; margin-bottom: 30px; border: 1px solid var(--border);">
+            <h3 style="font-size: 17px; margin-bottom: 15px; color: #f43f5e;">تغيير وتشفير كلمة السر (أمان معقد للغاية):</h3>
+            <div class="form-group"><label>كلمة السر الحالية:</label><input type="password" id="currPass" required></div>
+            <div class="form-group"><label>كلمة السر الجديدة (8+ خانات):</label><input type="password" id="newPass" required></div>
+            <button type="submit" class="btn btn-success">تحديث التشفير الفوري</button>
+        </form>
+
+        <h3 style="font-size: 18px; margin-bottom: 15px; color: #38bdf8;">إدارة واعتماد الألعاب في النظام:</h3>
+        <table>
+            <thead>
+                <tr><th>عنوان اللعبة</th><th>التصنيف</th><th>محرك الفيزياء</th><th>الحالة</th><th>الإجراءات الأمنية</th></tr>
+            </thead>
+            <tbody id="adminTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function showAlert(msg, type = 'success') {
+        const box = document.getElementById('alertBox');
+        box.className = 'alert ' + type;
+        box.innerHTML = msg;
+        setTimeout(() => { box.className = 'alert'; }, 5500);
+    }
+
+    let isAdminLoggedIn = localStorage.getItem('is_admin') === 'true';
+
+    function checkAdminState() {
+        document.getElementById('adminAuthCard').style.display = isAdminLoggedIn ? 'none' : 'block';
+        document.getElementById('adminPanelCard').style.display = isAdminLoggedIn ? 'block' : 'none';
+        if(isAdminLoggedIn) {
+            loadAdminTable();
+            loadServerStats();
+        }
+    }
+
+    async function adminLogin(e) {
+        e.preventDefault();
+        const pass = document.getElementById('adminPassInput').value;
+        try {
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ password: pass })
+            });
+            const data = await res.json();
+            if(data.success) {
+                isAdminLoggedIn = true;
+                localStorage.setItem('is_admin', 'true');
+                showAlert(data.message);
+                checkAdminState();
+            } else {
+                showAlert(data.message, 'error');
+            }
+        } catch (err) {
+            showAlert('خطأ في الاتصال بالخادم.', 'error');
+        }
+    }
+
+    function adminLogout() {
+        isAdminLoggedIn = false;
+        localStorage.setItem('is_admin', 'false');
+        showAlert("تم تسجيل خروج الإدارة بأمان.");
+        checkAdminState();
+    }
+
+    async function changePassword(e) {
+        e.preventDefault();
+        try {
+            const res = await fetch('/api/admin/change-password', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    currentPassword: document.getElementById('currPass').value,
+                    newPassword: document.getElementById('newPass').value
+                })
+            });
+            const data = await res.json();
+            if(res.ok) {
+                showAlert(data.message);
+                document.getElementById('currPass').value = '';
+                document.getElementById('newPass').value = '';
+            } else {
+                showAlert(data.error, 'error');
+            }
+        } catch (err) {
+            showAlert('خطأ في الاتصال بالخادم.', 'error');
+        }
+    }
+
+    async function loadServerStats() {
+        try {
+            const res = await fetch('/api/admin/stats');
+            const stats = await res.json();
+            const box = document.getElementById('serverStatsBox');
+            box.innerHTML = `
+                <div style="background:#090d16; padding:18px; border-radius:12px; border:1px solid var(--border); text-align:center;">
+                    <div style="font-size:13px; color:var(--text-muted);">إجمالي الألعاب</div>
+                    <div style="font-size:24px; font-weight:bold; color:#818cf8; margin-top:6px;">${stats.totalGames}</div>
+                </div>
+                <div style="background:#090d16; padding:18px; border-radius:12px; border:1px solid var(--border); text-align:center;">
+                    <div style="font-size:13px; color:var(--text-muted);">بانتظار المراجعة</div>
+                    <div style="font-size:24px; font-weight:bold; color:#fbbf24; margin-top:6px;">${stats.pendingGames}</div>
+                </div>
+                <div style="background:#090d16; padding:18px; border-radius:12px; border:1px solid var(--border); text-align:center;">
+                    <div style="font-size:13px; color:var(--text-muted);">الألعاب المقبولة</div>
+                    <div style="font-size:24px; font-weight:bold; color:#34d399; margin-top:6px;">${stats.approvedGames}</div>
+                </div>
+                <div style="background:#090d16; padding:18px; border-radius:12px; border:1px solid var(--border); text-align:center;">
+                    <div style="font-size:13px; color:var(--text-muted);">استهلاك الذاكرة</div>
+                    <div style="font-size:20px; font-weight:bold; color:#38bdf8; margin-top:6px;">${stats.activeMemory}</div>
+                </div>
+            `;
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function loadAdminTable() {
+        try {
+            const res = await fetch('/api/games');
+            const games = await res.json();
+            const tbody = document.getElementById('adminTableBody');
+
+            tbody.innerHTML = games.map(g => `
+                <tr>
+                    <td><b style="color:#fff;">${g.title}</b><div style="font-size:11px; color:var(--text-muted);">المطور: ${g.developer_tag}</div></td>
+                    <td>${g.cat}</td>
+                    <td><span style="color:#38bdf8; font-size:13px;">${g.physics_engine}</span></td>
+                    <td><span class="badge ${g.status}">${g.status}</span></td>
+                    <td>
+                        ${g.status === 'pending' ? `
+                            <button class="btn btn-success" style="padding:6px 12px; font-size:12px; margin-left:5px;" onclick="updateStatus(${g.id}, 'approved')">قبول</button>
+                            <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="updateStatus(${g.id}, 'rejected')">رفض</button>
+                        ` : '<span style="color:var(--text-muted);">تم الإجراء</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function updateStatus(id, status) {
+        await fetch(`/api/games/${id}`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ status })
+        });
+        loadAdminTable();
+        loadServerStats();
+        showAlert("تم تحديث حالة اللعبة بنجاح.");
+    }
+
+    async function loadAuditLogs() {
+        try {
+            const res = await fetch('/api/admin/logs');
+            const logs = await res.json();
+            let logText = logs.map(l => `[${l.timestamp}] ${l.action_type}: ${l.description} (IP: ${l.ip_address})`).join('\n');
+            alert("--- أحدث سجلات الأمان والنشاط في الخادم ---\n\n" + logText);
+        } catch (e) {
+            showAlert('فشل في جلب سجلات الأمان.', 'error');
+        }
+    }
+
+    checkAdminState();
+</script>
+</body>
+</html>
